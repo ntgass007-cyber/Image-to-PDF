@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhotoPDF — Turn Photos into PDFs</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f11;
+    --surface: #18181c;
+    --border: #2a2a30;
+    --accent: #7c6af7;
+    --accent-dim: #3d3575;
+    --text: #e8e8ed;
+    --muted: #6b6b78;
+    --danger: #f25858;
+    --success: #4ade80;
+    --card-bg: #1e1e24;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* HEADER */
+  header {
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+  }
+
+  .logo-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-text span { color: var(--accent); }
+
+  .header-tag {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* MAIN */
+  main {
+    flex: 1;
+    max-width: 960px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 48px 24px;
+  }
+
+  .hero {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 600;
+    letter-spacing: -1.5px;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .hero p {
+    color: var(--muted);
+    font-size: 1rem;
+    font-weight: 300;
+  }
+
+  /* DROP ZONE */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 52px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    background: var(--surface);
+    margin-bottom: 32px;
+  }
+
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(124,106,247,0.05);
+  }
+
+  .drop-zone input[type="file"] {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+
+  .drop-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .drop-zone h2 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  .drop-zone p {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .drop-zone .btn-browse {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 10px 24px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    pointer-events: none;
+  }
+
+  .drop-zone:hover .btn-browse { opacity: 0.85; }
+
+  /* SETTINGS BAR */
+  .settings-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .settings-bar label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+
+  .settings-bar select {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    outline: none;
+    flex-shrink: 0;
+  }
+
+  .settings-bar select:focus { border-color: var(--accent); }
+
+  .divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+
+  .settings-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+
+  /* IMAGE GRID */
+  .grid-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .grid-header h3 {
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 500;
+  }
+
+  .count-badge {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 0.75rem;
+    font-family: 'Space Mono', monospace;
+  }
+
+  #image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+    min-height: 0;
+  }
+
+  .img-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    cursor: grab;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    aspect-ratio: 3/4;
+    user-select: none;
+  }
+
+  .img-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  .img-card.dragging {
+    opacity: 0.4;
+    transform: scale(0.97);
+  }
+
+  .img-card.drag-over {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+
+  .img-card img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+  }
+
+  .img-card .page-num {
+    position: absolute;
+    top: 8px; left: 8px;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    padding: 2px 7px;
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+  }
+
+  .img-card .remove-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 24px; height: 24px;
+    background: var(--danger);
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+    line-height: 1;
+  }
+
+  .img-card:hover .remove-btn { opacity: 1; }
+
+  .img-card .img-name {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    color: #fff;
+    font-size: 0.65rem;
+    padding: 16px 8px 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* EMPTY STATE */
+  #empty-state {
+    display: none;
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  /* ACTIONS */
+  .actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.95rem;
+    padding: 14px 32px;
+  }
+
+  .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* PROGRESS */
+  #progress-bar {
+    display: none;
+    margin-top: 20px;
+    background: var(--surface);
+    border-radius: 8px;
+    overflow: hidden;
+    height: 6px;
+  }
+
+  #progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #a78bfa);
+    width: 0%;
+    transition: width 0.3s;
+    border-radius: 8px;
+  }
+
+  #status-msg {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    min-height: 1.2em;
+  }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 20px;
+    color: var(--muted);
+    font-size: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+
+  footer span { color: var(--accent); }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    header { padding: 16px; }
+    main { padding: 24px 16px; }
+    #image-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+    .settings-bar { gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon">📄</div>
+  <div class="logo-text">Photo<span>PDF</span></div>
+  <div class="header-tag">100% Client-side · No uploads</div>
+</header>
+
+<main>
+  <div class="hero">
+    <h1>Photos into a <em>PDF</em>,<br>right in your browser.</h1>
+    <p>Drag, arrange, and export — your files never leave your device.</p>
+  </div>
+
+  <div class="drop-zone" id="drop-zone">
+    <input type="file" id="file-input" accept="image/*" multiple>
+    <span class="drop-icon">🖼️</span>
+    <h2>Drop your photos here</h2>
+    <p>JPG, PNG, WEBP, GIF — any image format works</p>
+    <span class="btn-browse">Browse Files</span>
+  </div>
+
+  <div id="workspace" style="display:none">
+    <div class="settings-bar">
+      <label>Page Size</label>
+      <select id="page-size">
+        <option value="a4">A4</option>
+        <option value="letter">Letter</option>
+        <option value="a3">A3</option>
+        <option value="fit">Fit to Image</option>
+      </select>
+      <div class="divider"></div>
+      <label>Orientation</label>
+      <select id="orientation">
+        <option value="auto">Auto</option>
+        <option value="portrait">Portrait</option>
+        <option value="landscape">Landscape</option>
+      </select>
+      <div class="divider"></div>
+      <label>Quality</label>
+      <select id="quality">
+        <option value="0.92">High</option>
+        <option value="0.75">Medium</option>
+        <option value="0.5">Low (smaller file)</option>
+      </select>
+      <div class="settings-right">
+        <label style="color:var(--muted);font-size:0.8rem">Margin</label>
+        <select id="margin">
+          <option value="0">None</option>
+          <option value="10" selected>Small</option>
+          <option value="20">Medium</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid-header">
+      <h3>Pages · <span style="color:var(--text)">drag to reorder</span></h3>
+      <span class="count-badge" id="count-badge">0 photos</span>
+    </div>
+
+    <div id="image-grid"></div>
+    <div id="empty-state">No photos added yet. Drop some above!</div>
+
+    <div class="actions">
+      <button class="btn btn-ghost" id="clear-btn">✕ Clear All</button>
+      <button class="btn btn-ghost" id="add-more-btn">＋ Add More</button>
+      <input type="file" id="add-more-input" accept="image/*" multiple style="display:none">
+      <button class="btn btn-primary" id="convert-btn">Export PDF ↓</button>
+    </div>
+
+    <div id="progress-bar"><div id="progress-fill"></div></div>
+    <div id="status-msg"></div>
+  </div>
+</main>
+
+<footer>All processing happens locally in your browser. <span>Zero data sent to any server.</span></footer>
+
+<script>
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+  const workspace = document.getElementById('workspace');
+  const imageGrid = document.getElementById('image-grid');
+  const countBadge = document.getElementById('count-badge');
+  const convertBtn = document.getElementById('convert-btn');
+  const clearBtn = document.getElementById('clear-btn');
+  const addMoreBtn = document.getElementById('add-more-btn');
+  const addMoreInput = document.getElementById('add-more-input');
+  const progressBar = document.getElementById('progress-bar');
+  const progressFill = document.getElementById('progress-fill');
+  const statusMsg = document.getElementById('status-msg');
+
+  let images = []; // {id, name, dataUrl}
+  let dragSrcIdx = null;
+
+  // --- Drop Zone ---
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    handleFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+  addMoreInput.addEventListener('change', () => handleFiles(addMoreInput.files));
+  addMoreBtn.addEventListener('click', () => addMoreInput.click());
+  clearBtn.addEventListener('click', () => { images = []; renderGrid(); });
+
+  function handleFiles(files) {
+    const list = Array.from(files).filter(f => f.type.startsWith('image/'));
+    if (!list.length) return;
+    let loaded = 0;
+    list.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        images.push({ id: Date.now() + Math.random(), name: file.name, dataUrl: e.target.result });
+        loaded++;
+        if (loaded === list.length) renderGrid();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderGrid() {
+    imageGrid.innerHTML = '';
+    if (images.length === 0) {
+      workspace.style.display = 'none';
+      statusMsg.textContent = '';
+      return;
+    }
+    workspace.style.display = 'block';
+    countBadge.textContent = images.length + (images.length === 1 ? ' photo' : ' photos');
+
+    images.forEach((img, idx) => {
+      const card = document.createElement('div');
+      card.className = 'img-card';
+      card.draggable = true;
+      card.dataset.idx = idx;
+      card.innerHTML = `
+        <img src="${img.dataUrl}" alt="${img.name}" loading="lazy">
+        <div class="page-num">${idx + 1}</div>
+        <div class="img-name">${img.name}</div>
+        <button class="remove-btn" title="Remove">✕</button>
+      `;
+
+      card.querySelector('.remove-btn').addEventListener('click', e => {
+        e.stopPropagation();
+        images.splice(idx, 1);
+        renderGrid();
+      });
+
+      // Drag to reorder
+      card.addEventListener('dragstart', () => {
+        dragSrcIdx = idx;
+        setTimeout(() => card.classList.add('dragging'), 0);
+      });
+      card.addEventListener('dragend', () => card.classList.remove('dragging'));
+      card.addEventListener('dragover', e => { e.preventDefault(); card.classList.add('drag-over'); });
+      card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+      card.addEventListener('drop', e => {
+        e.preventDefault();
+        card.classList.remove('drag-over');
+        if (dragSrcIdx === null || dragSrcIdx === idx) return;
+        const moved = images.splice(dragSrcIdx, 1)[0];
+        images.splice(idx, 0, moved);
+        dragSrcIdx = null;
+        renderGrid();
+      });
+
+      imageGrid.appendChild(card);
+    });
+  }
+
+  // --- Convert ---
+  convertBtn.addEventListener('click', async () => {
+    if (!images.length) return;
+    convertBtn.disabled = true;
+    progressBar.style.display = 'block';
+    progressFill.style.width = '0%';
+    statusMsg.textContent = 'Preparing PDF…';
+
+    const pageSize = document.getElementById('page-size').value;
+    const orientation = document.getElementById('orientation').value;
+    const quality = parseFloat(document.getElementById('quality').value);
+    const margin = parseInt(document.getElementById('margin').value);
+
+    const { jsPDF } = window.jspdf;
+
+    try {
+      let pdf = null;
+
+      for (let i = 0; i < images.length; i++) {
+        statusMsg.textContent = `Processing page ${i + 1} of ${images.length}…`;
+        progressFill.style.width = ((i / images.length) * 85) + '%';
+
+        const imgData = images[i].dataUrl;
+        const imgInfo = await getImageDimensions(imgData);
+        const imgW = imgInfo.width;
+        const imgH = imgInfo.height;
+
+        // Determine page orientation
+        let orient = orientation;
+        if (orient === 'auto') orient = imgW >= imgH ? 'landscape' : 'portrait';
+
+        // Page dimensions in mm
+        let pW, pH;
+        if (pageSize === 'a4') { pW = 210; pH = 297; }
+        else if (pageSize === 'letter') { pW = 216; pH = 279; }
+        else if (pageSize === 'a3') { pW = 297; pH = 420; }
+        else { // fit
+          const dpi = 96;
+          pW = (imgW / dpi) * 25.4;
+          pH = (imgH / dpi) * 25.4;
+          orient = 'portrait';
+        }
+
+        if (orient === 'landscape' && pageSize !== 'fit') [pW, pH] = [pH, pW];
+
+        if (!pdf) {
+          pdf = new jsPDF({ orientation: orient === 'landscape' ? 'l' : 'p', unit: 'mm', format: pageSize === 'fit' ? [pW, pH] : pageSize });
+        } else {
+          pdf.addPage(pageSize === 'fit' ? [pW, pH] : pageSize, orient === 'landscape' ? 'l' : 'p');
+        }
+
+        // Fit image within page (minus margin)
+        const maxW = pW - margin * 2;
+        const maxH = pH - margin * 2;
+        const ratio = Math.min(maxW / imgW, maxH / imgH);
+        const drawW = imgW * ratio;
+        const drawH = imgH * ratio;
+        const x = margin + (maxW - drawW) / 2;
+        const y = margin + (maxH - drawH) / 2;
+
+        const fmt = imgData.includes('image/png') ? 'PNG' : 'JPEG';
+        pdf.addImage(imgData, fmt, x, y, drawW, drawH, undefined, 'FAST', 0);
+
+        await sleep(10); // allow UI update
+      }
+
+      progressFill.style.width = '100%';
+      statusMsg.textContent = 'Done! Downloading…';
+      await sleep(300);
+
+      pdf.save('PhotoPDF_export.pdf');
+      statusMsg.textContent = `✓ PDF exported · ${images.length} page${images.length > 1 ? 's' : ''}`;
+    } catch (err) {
+      statusMsg.textContent = '⚠ Error: ' + err.message;
+    }
+
+    convertBtn.disabled = false;
+    progressBar.style.display = 'none';
+  });
+
+  function getImageDimensions(src) {
+    return new Promise(res => {
+      const img = new Image();
+      img.onload = () => res({ width: img.naturalWidth, height: img.naturalHeight });
+      img.src = src;
+    });
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
